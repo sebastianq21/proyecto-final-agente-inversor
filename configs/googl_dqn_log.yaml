@@ -1,0 +1,47 @@
+# DQN investing in GOOGL. R1: daily log return of the portfolio, costs included.
+#   for s in 0 1 2 3 4; do rlgames-sb train --config configs/googl_dqn_log.yaml --seed $s; done
+#   rlgames-sb backtest configs/googl_dqn_log.yaml --split val
+#
+# Trains on random 1-year windows of 2009-2015 (googl-log-v0) and evaluates on
+# all of 2016 (googl-val-v0, log-return score). 2017-2018 is never used here.
+
+experiment: googl
+env: googl-log-v0
+eval_env: googl-val-v0
+algo: dqn
+timesteps: 200_000
+eval_episodes: 1              # the val period is one deterministic episode
+
+# Learning curve: every 10k steps, score the greedy agent on the whole train
+# period and on val (results/curves/). The gap shows when it starts memorizing.
+curve:
+  every: 10_000
+  envs: [googl-train-v0, googl-val-v0]
+
+hyperparams:
+  learning_rate: 1.0e-4
+  batch_size: 64
+  buffer_size: 100_000
+  learning_starts: 5_000
+  gamma: 0.99
+  train_freq: 4
+  target_update_interval: 1_000
+  exploration_fraction: 0.3
+  exploration_initial_eps: 1.0
+  exploration_final_eps: 0.02
+  policy_kwargs:
+    net_arch: [64, 64]
+  device: cpu
+
+tune:
+  trials: 20
+  timesteps: 100_000          # per seed
+  seeds: 2
+  evals: 10
+  eval_episodes: 1
+  score_last: 3
+  search_space:
+    learning_rate: {type: float, low: 3.0e-5, high: 1.0e-3, log: true}
+    gamma: {type: categorical, choices: [0.9, 0.95, 0.99]}
+    exploration_fraction: {type: float, low: 0.1, high: 0.5}
+    target_update_interval: {type: categorical, choices: [500, 1000, 5000]}

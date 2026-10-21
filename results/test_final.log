@@ -1,0 +1,9 @@
+                           cum_return max_drawdown      costs  trades exposure sharpe
+                                 mean         mean       mean    mean     mean   mean
+strategy                                                                             
+googl_dqn_turnover_noise05      0.394       -0.139   2511.122   35.80    0.734  1.233
+buy_and_hold                    0.564       -0.154    100.000    1.00    1.000  1.445
+half                            0.260       -0.078    155.687    1.00    0.500  1.440
+random                          0.068       -0.134  19077.685  278.13    0.503  0.361
+
+Saved to results/test/
