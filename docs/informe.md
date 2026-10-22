@@ -515,6 +515,8 @@ nos sorprendió que R0, la recompensa que en teoría era la peor (escasa, en dó
 funcionara mejor que las que diseñamos con más cuidado: como da menos información, el agente tenía
 menos que memorizar.
 
+*En la [ampliación](ampliacion.md)* nos sorprendió que el problema de fondo fuera falta de entrenamiento: con 2M pasos en vez de 200k, el retorno en validación pasó de +5,3 % a +12,1 % (Double DQN), y en prueba la diferencia entre semillas bajó de ±21 a unos ±4 puntos.
+
 **2. ¿Qué decisión metodológica tuvo mayor impacto en el agente?**
 
 Agregar ruido a lo que ve el agente durante el entrenamiento (iteración 3). Fue el único cambio que
@@ -528,6 +530,8 @@ entrenamiento, validación y prueba, fijar la regla de selección antes de ver l
 cinco semillas. Sin eso habríamos dicho que el agente le ganaba a comprar y mantener (+5,3 % frente
 a +4,2 % en validación). La prueba mostró lo contrario (+39,4 % frente a +56,4 %), y nosotros ya
 sabíamos que esa ventaja en validación era más pequeña que la variación entre semillas.
+
+*En la [ampliación](ampliacion.md)*, la decisión de mayor efecto fue combinar las cinco semillas: cada día el agente toma la posición mediana, sin reentrenar nada. Con eso nuestro agente pasa de +30,7 % a +45,1 % en prueba, con un Sharpe de 1,48 frente a 1,45 de comprar y mantener, la única métrica en la que lo superamos.
 
 **3. ¿Qué cambiaríamos si tuviéramos que repetir el experimento?**
 
@@ -547,6 +551,8 @@ sabíamos que esa ventaja en validación era más pequeña que la variación ent
 - **Operar de forma más realista,** a la apertura del día siguiente, para no depender del supuesto
   de operar al precio de cierre que ya se vio.
 
+*En la [ampliación](ampliacion.md)* probamos dos de estas ideas. Combinar semillas funcionó. Aumentar los datos con 11 acciones más (2009-2015) redujo la memorización, pero el agente aprendió a quedarse casi siempre invertido, porque en esos años casi todas subieron. También probamos una recompensa de Sharpe diferencial y empeoró: sin un freno a operar, el agente hizo cerca de 100 operaciones en la prueba y los costos se comieron el retorno.
+
 **4. ¿Qué comportamiento del agente no logramos explicar completamente?**
 
 Las salidas al mismo tiempo en el período de prueba. Cuatro de las cinco semillas salieron del
@@ -557,6 +563,8 @@ días de la prueba según cada indicador, la exposición solo baja un poco en lo
 0,69-0,72), y no encontramos una regla sencilla que lo explique. Tampoco entendemos del todo por qué
 la semilla 0, con los mismos datos y la misma configuración, aprendió una estrategia mucho más
 conservadora (37 % invertida frente a 65-90 % de las demás).
+
+*En la [ampliación](ampliacion.md)*, el agente entrenado con varias acciones queda invertido entre 94 % y 99 % del tiempo. No sabemos si es una estrategia aprendida o si simplemente imita a comprar y mantener porque fue lo que más pagó en esos datos.
 
 **5. ¿Cuál fue la principal diferencia entre lo aprendido en Reinforcement Learning y su aplicación
 a este problema?**
@@ -572,6 +580,8 @@ entrenamiento no significa que vaya a ganar con datos nuevos. Por eso la mayor p
 fue el algoritmo, que ya venía implementado en Stable-Baselines3, sino construir el entorno, probar
 recompensas y evaluar con cuidado. Nos dimos cuenta de que, en un problema real, el algoritmo es
 solo una parte del trabajo.
+
+*En la [ampliación](ampliacion.md)* lo confirmamos: en los juegos del curso entrenar más casi siempre ayuda, y aquí también ayudó, pero solo junto con el ruido y la penalización por operar. La recompensa de Sharpe diferencial fue la que más memorizó el entrenamiento y la que peor generalizó.
 
 ---
 
