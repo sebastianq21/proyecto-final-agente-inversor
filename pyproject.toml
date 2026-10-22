@@ -21,6 +21,7 @@ dependencies = [
     "ruff>=0.15.5",
     "stable-baselines3>=2.7",
     "torch>=2.14.1",
+    "yfinance>=1.7.0",
 ]
 
 [project.scripts]

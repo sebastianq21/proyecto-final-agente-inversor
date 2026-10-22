@@ -15,6 +15,7 @@ from __future__ import annotations
 
 import argparse
 from importlib.metadata import version
+from pathlib import Path
 
 import numpy as np
 import yaml
@@ -248,11 +249,14 @@ def cmd_backtest(args: argparse.Namespace) -> None:
             "backtest: the test period is held out. Choose the agent on 'val', "
             "then run it once on 'test' with --final."
         )
-    summary = evaluate.backtest(args.split, args.configs, args.seeds, args.random_runs)
+    summary = evaluate.backtest(
+        args.split, args.configs, args.seeds, args.random_runs,
+        with_ensemble=args.ensemble, out=Path(args.out) if args.out else None,
+    )
     cols = ["cum_return", "max_drawdown", "costs", "trades", "exposure", "sharpe"]
     with np.printoptions(suppress=True):
         print(summary.loc[:, (cols, "mean")].round(3).to_string())
-    print(f"\nSaved to {evaluate.RESULTS / args.split}/")
+    print(f"\nSaved to {args.out or evaluate.RESULTS / args.split}/")
 
 
 def cmd_curves(args: argparse.Namespace) -> None:
@@ -408,6 +412,9 @@ def _build_parser() -> argparse.ArgumentParser:
     p.add_argument("--seeds", type=int, default=5, help="Seeds per agent: saves seed0..N-1")
     p.add_argument("--random-runs", type=int, default=100, help="Runs of the random baseline")
     p.add_argument("--final", action="store_true", help="Required for --split test")
+    p.add_argument("--ensemble", action="store_true",
+                   help="Also run each config's seed ensemble (median of their actions)")
+    p.add_argument("--out", default=None, help="Output directory (default: results/<split>/)")
     p.set_defaults(func=cmd_backtest)
 
     # curves

@@ -15,6 +15,7 @@ A config file looks like:
     algo: dqn
     timesteps: 1_000_000
     eval_episodes: 10             # greedy evaluation after training, 0 to skip
+    save_tag: 2m                  # optional: saves/<algo>_<env>_2m_seed0.zip
     hyperparams:                  # passed straight to the SB3 constructor
       learning_rate: 1.0e-4
     curve:                        # optional learning curve during `train`
@@ -59,6 +60,7 @@ class Config:
     hyperparams: dict[str, Any] = field(default_factory=dict)
     tune: dict[str, Any] = field(default_factory=dict)
     curve: dict[str, Any] = field(default_factory=dict)
+    save_tag: str = ""            # "" means: saves/<algo>_<env>[_seedN].zip
     path: Path | None = None
 
 
@@ -82,6 +84,7 @@ def load(path: str | Path) -> Config:
         hyperparams=raw.get("hyperparams") or {},
         tune=raw.get("tune") or {},
         curve=raw.get("curve") or {},
+        save_tag=str(raw.get("save_tag", "")),
         path=path,
     )
 
