@@ -165,7 +165,8 @@ class InvestEnv(gym.Env):
 
     def _dsr(self, r: float) -> float:
         """D_t = (B dA - A dB / 2) / (B - A^2)^(3/2), with A, B the moving means
-        of r and r^2 before this step (Moody & Saffell, 1998)."""
+        of r and r^2 before this step (Moody & Saffell, 1998). dA and dB already
+        include eta, so this is the paper's D_t times eta: a constant scale."""
         a, b = self.dsr_a, self.dsr_b
         da, db = self.dsr_eta * (r - a), self.dsr_eta * (r * r - b)
         self.dsr_a, self.dsr_b = a + da, b + db

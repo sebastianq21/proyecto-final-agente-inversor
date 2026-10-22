@@ -8,7 +8,7 @@ Este documento extiende el trabajo del grupo (`docs/informe.md`). El agente fina
 - **Validación (2016):** es donde se eligen las variantes. La métrica es el log del crecimiento del capital, promediado sobre las 5 semillas. Es la misma regla del informe.
 - **Prueba (2017 a agosto de 2018):** el grupo ya la había mirado. Por eso aquí todas las variantes se reportan en prueba, pero ninguna se eligió con ella. Hay que leer estas cifras como un estudio de ablación, no como un resultado limpio de selección.
 - **Ensamble:** una sola política que cada día toma la mediana de las acciones de las 5 semillas (0 %, 50 % o 100 % invertido). No requiere reentrenar.
-- **Agente del grupo:** sus modelos no estaban versionados (`saves/` está en `.gitignore`), así que se reentrenaron con su config y sus semillas. La reproducción no salió idéntica: con las mismas semillas, las curvas se separan desde los 20k pasos, probablemente por diferencias de CPU e hilos entre máquinas. Por eso la tabla muestra la cifra publicada por el grupo y también la reproducida.
+- **Agente del grupo:** sus modelos no estaban versionados (`saves/` está en `.gitignore`), así que se reentrenaron con su config y sus semillas. La reproducción no salió idéntica: con las mismas semillas se obtienen trayectorias distintas, probablemente por diferencias de CPU e hilos entre máquinas. Por eso la tabla muestra la cifra publicada por el grupo y también la reproducida.
 
 ## Resultados
 
@@ -39,11 +39,11 @@ Archivos:
 
 ## Qué aprendimos
 
-**1. Entrenar más ayuda, y mucho.** Con 200k pasos el agente seguía lejos de converger. Con 2M, la validación sube de 0,057 a 0,093 (DQN), y la dispersión en prueba entre semillas baja de ±0,21 a ±0,08. Lo que en la curva del grupo parecía un techo a los 200k era el ruido de evaluar en un solo año.
+**1. Entrenar más ayuda, y mucho.** Con 200k pasos el agente seguía lejos de converger. Con 2M, la validación sube de 0,057 a 0,093 (DQN), y la dispersión en prueba entre semillas baja de ±0,21 a ±0,08. Lo que en la curva del grupo parecía un techo a los 200k probablemente era el ruido de evaluar en un solo año.
 
 **2. Double DQN aporta estabilidad más que retorno.** Frente a DQN 2M, sube un poco la media (0,093 → 0,114) y reduce a la mitad la dispersión entre semillas (0,072 → 0,033 en validación, 0,08 → 0,03 en prueba). Es coherente con su propósito: DQN sobreestima los valores Q al usar el máximo de la misma red que evalúa, y Double DQN separa quién elige la acción de quién la evalúa.
 
-**3. El ensamble es la palanca más barata, pero solo ayuda cuando las semillas ya son buenas.** No requiere reentrenar, y mejora a las tres variantes con R3 entrenadas en GOOGL tanto en validación como en prueba. También reduce operaciones y costos, porque una semilla aislada que cambia de opinión no alcanza a mover la mediana. Con el ensamble, el agente del grupo pasa de +30,7 % a +45,1 % en prueba. Ese es el único caso de la tabla que supera a comprar y mantener en Sharpe (1,48 contra 1,45). En cambio, no rescata a la variante de Sharpe diferencial: empeora en validación (+1,6 % → −4,1 %) y en prueba. Tampoco ayuda a la multiactivo, cuyas semillas ya coinciden casi siempre: baja en validación (+7,5 % → +6,2 %) y queda igual en prueba. Promediar corrige la variabilidad entre semillas, no un sesgo que comparten todas.
+**3. El ensamble es la palanca más barata, pero solo ayuda cuando las semillas ya son buenas.** No requiere reentrenar, y mejora a las tres variantes con R3 entrenadas en GOOGL tanto en validación como en prueba. También reduce operaciones y costos, porque una semilla aislada que cambia de opinión no alcanza a mover la mediana. Con el ensamble, el agente del grupo pasa de +30,7 % a +45,1 % en prueba. Junto con el ensamble de DDQN 2M, son los únicos que superan a comprar y mantener en Sharpe (1,48 y 1,46 contra 1,45). En cambio, no rescata a la variante de Sharpe diferencial: empeora en validación (+1,6 % → −4,1 %) y en prueba. Tampoco ayuda a la multiactivo, cuyas semillas ya coinciden casi siempre: baja en validación (+7,5 % → +6,2 %) y queda igual en prueba. Promediar corrige la variabilidad entre semillas, no un sesgo que comparten todas.
 
 **4. La recompensa de Sharpe diferencial empeora todo.** Es la variante que más memoriza: en entrenamiento llega a log 3,4, contra 2,8 de R3 (ver `curvas_2m.png`). Y es la que peor generaliza. Hace unas 100 operaciones en prueba, contra 18 de R3, y paga cuatro veces más en costos. La razón es que esta recompensa mide retorno por unidad de riesgo, pero no tiene ningún freno explícito a la rotación. La penalización por rotación de R3 resulta ser lo que contiene ese sobreajuste. Lección: cambiar la recompensa sin conservar el freno a operar es peor que no cambiarla.
 
@@ -68,6 +68,7 @@ done                                                # igual con las demás confi
 uv run rlgames-sb backtest configs/googl_dqn_turnover_noise05.yaml configs/googl_dqn_turnover_noise05_2m.yaml \
   configs/googl_ddqn_turnover_noise05_2m.yaml configs/googl_ddqn_dsr_noise05_2m.yaml \
   configs/multi_ddqn_turnover_noise05_2m.yaml --split val --ensemble --out results/ampliacion/final_val
+# lo mismo con --split test --final --out results/ampliacion/final_test
 ```
 
 Cada corrida de 2M pasos tarda unos 40 minutos en CPU; 5 semillas en paralelo, cerca de una hora.

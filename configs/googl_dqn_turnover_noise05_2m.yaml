@@ -1,7 +1,7 @@
-# 2M-step rerun of iteration 3 (val only). DQN investing in GOOGL. R3 (turnover penalty) trained on noisy observations:
+# Extension: 2M-step rerun of iteration 3. DQN investing in GOOGL. R3 (turnover penalty) trained on noisy observations:
 # Gaussian noise with std 0.5 (z-score units) on the features. Iteration 3.
-#   for s in 0 1 2 3 4; do rlgames-sb train --config configs/googl_dqn_turnover_noise05.yaml --seed $s; done
-#   rlgames-sb backtest configs/googl_dqn_turnover_noise05.yaml --split val
+#   for s in 0 1 2 3 4; do rlgames-sb train --config configs/googl_dqn_turnover_noise05_2m.yaml --seed $s; done
+#   rlgames-sb backtest configs/googl_dqn_turnover_noise05_2m.yaml --split val
 #
 # Trains on random 1-year windows of 2009-2015 (googl-turnover-noise05-v0) and evaluates on
 # all of 2016 (googl-val-v0, log-return score). 2017-2018 is never used here.
