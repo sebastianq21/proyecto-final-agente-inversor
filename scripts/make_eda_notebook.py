@@ -70,7 +70,7 @@ triángulos marcan los 8 movimientos diarios más grandes del período: **todos 
 publicación de resultados trimestrales** de Google, información que no está en el precio."""),
     code("""import matplotlib.dates as mdates
 
-MONTHS = "ene feb mar abr may jun jul ago sep oct nov dic".split()
+MONTHS = ["ene", "feb", "mar", "abr", "may", "jun", "jul", "ago", "sep", "oct", "nov", "dic"]
 usd = lambda x, _=None: "USD " + f"{x:,.0f}".replace(",", ".")
 
 EVENTS = {  # verified with press coverage of each day; (text, label offset in points)
@@ -93,7 +93,7 @@ for d, (text, offset) in EVENTS.items():
     d = pd.Timestamp(d)
     ax1.annotate(text, (d, close[d]), xytext=offset,
                  textcoords="offset points", ha="center", fontsize=8, color=MUTED,
-                 arrowprops=dict(arrowstyle="-", color="#b5b4ae", linewidth=0.8))
+                 arrowprops={"arrowstyle": "-", "color": "#b5b4ae", "linewidth": 0.8})
 ax1.plot([], [], "^", color=C["train"], label="mayor subida diaria (resultados)")
 ax1.plot([], [], "v", color=C["val"], label="mayor caída diaria (resultados)")
 ax1.legend(frameon=False, fontsize=8, loc="upper left", bbox_to_anchor=(0, 0.93))
@@ -206,8 +206,8 @@ pos = np.arange(len(data.FEATURES))
 for k, (name, z) in enumerate([("train", train_z), ("val", val_z)]):
     ax.boxplot([z[f] for f in data.FEATURES], positions=pos + (k - 0.5) * 0.35, widths=0.3,
                showfliers=False, patch_artist=True,
-               boxprops=dict(facecolor=C[name], alpha=0.5, edgecolor=C[name]),
-               medianprops=dict(color=INK), whiskerprops=dict(color=C[name]), capprops=dict(color=C[name]))
+               boxprops={"facecolor": C[name], "alpha": 0.5, "edgecolor": C[name]},
+               medianprops={"color": INK}, whiskerprops={"color": C[name]}, capprops={"color": C[name]})
     ax.plot([], [], color=C[name], linewidth=6, alpha=0.5, label=name)
 ax.set_xticks(pos, data.FEATURES, fontsize=8)
 ax.axhline(0, color="#b5b4ae", linewidth=0.8)
