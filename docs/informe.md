@@ -240,11 +240,12 @@ cambia cuando se mueve el precio) y de los costos pagados. **Supuesto:** se pued
 precio de cierre que el agente acaba de ver. Una opción más conservadora sería operar a la apertura
 del día siguiente.
 
-Ocho pruebas automáticas revisan el entorno: que los indicadores y la normalización no usen datos
+Nueve pruebas automáticas revisan el entorno: que los indicadores y la normalización no usen datos
 del futuro; que los períodos no se crucen; que invertir 100 % todo el tiempo dé lo mismo que comprar
 y mantener menos un solo costo; que 0 % todo el tiempo no cambie el capital; que la suma de las
 recompensas logarítmicas sea igual al logaritmo de lo que creció el capital; que la decisión del día
-t gane exactamente el movimiento de t a t+1; y que la penalización de R3 solo se cobre al operar.
+t gane exactamente el movimiento de t a t+1; que la penalización de R3 solo se cobre al operar; y
+que el ruido de la iteración 3 afecte los indicadores, pero no la posición ni los precios.
 
 ### b.4 Diseño e iteración de la recompensa
 
@@ -381,6 +382,13 @@ pero preferimos respetar la regla escrita y no cambiar la elección después de 
    promedia sobre 100 corridas.
 7. **Métricas:** retorno acumulado, caída máxima, costos pagados, número de operaciones, exposición
    promedio, volatilidad anualizada y ratio de Sharpe.
+   - *Operaciones* cuenta los cambios de la fracción objetivo (0 %, 50 %, 100 %). Los pequeños
+     reajustes diarios para mantener el 50 % cuando el precio se mueve no se cuentan como
+     operaciones, pero su costo sí está incluido en *Costos*. Por eso la estrategia de 50 % fijo
+     muestra 1 operación y algo más de USD 100 en costos.
+   - *Exposición* es la fracción invertida promedio: un día al 50 % cuenta 0,5. No es el porcentaje
+     de días con dinero invertido.
+   - *Sharpe* es anualizado con 252 días y tasa libre de riesgo igual a 0.
 
 ---
 
@@ -427,8 +435,8 @@ aleatorio va de −9,9 % a +25,2 % (percentiles 5 y 95).
 
 - **El agente no le gana a comprar y mantener.** Queda 17 puntos por debajo y con un Sharpe menor.
   Ninguna de las 5 semillas le gana; la mejor queda a menos de un punto.
-- **Se comporta como un "comprar y mantener" con menos dinero invertido.** En promedio está
-  invertido el 73 % del tiempo (4 de las 5 semillas, entre 65 % y 90 %), y su curva sigue de cerca
+- **Se comporta como un "comprar y mantener" con menos dinero invertido.** En promedio tiene
+  invertido el 73 % del capital (exposición promedio; 4 de las 5 semillas, entre 65 % y 90 %), y su curva sigue de cerca
   a la de comprar y mantener, un poco por debajo. En un período que subió tanto, cada día fuera del
   mercado le costó.
 - **Reduce un poco el riesgo:** su caída máxima es −13,9 % frente a −15,4 %, pero eso no compensa
@@ -458,7 +466,7 @@ problemas, porque solo existe un histórico y el agente lo recorre muchas veces.
 
 ### e.2 Comportamientos raros del agente final en la prueba
 
-- **Una semilla se comporta distinto.** La semilla 0 está invertida solo el 37 % del tiempo y gana
+- **Una semilla se comporta distinto.** La semilla 0 tiene una exposición promedio de solo 37 % y gana
   +3,4 %, mientras que las otras cuatro ganan entre +45 y +56 %. Tiene los mismos datos y la misma
   configuración; lo único que cambia es la inicialización aleatoria, y aun así aprendió una
   estrategia mucho más conservadora. Por eso es importante reportar varias semillas.
@@ -562,7 +570,7 @@ en el mismo día, así que parece que reaccionan a algo concreto del estado. Per
 días de la prueba según cada indicador, la exposición solo baja un poco en los extremos (de 0,78 a
 0,69-0,72), y no encontramos una regla sencilla que lo explique. Tampoco entendemos del todo por qué
 la semilla 0, con los mismos datos y la misma configuración, aprendió una estrategia mucho más
-conservadora (37 % invertida frente a 65-90 % de las demás).
+conservadora (exposición promedio de 37 % frente a 65-90 % de las demás).
 
 *En la [ampliación](ampliacion.md)*, el agente entrenado con varias acciones tiene una exposición media de 94 % a 99 %. No sabemos si es una estrategia aprendida o si simplemente imita a comprar y mantener porque fue lo que más pagó en esos datos.
 
@@ -602,8 +610,12 @@ uv run python scripts/make_eda_notebook.py          # análisis exploratorio y F
 ```
 
 Las semillas 0-4 fijan la red, la exploración y las ventanas de entrenamiento; el agente aleatorio
-usa las semillas 0-99. Si se repite el entrenamiento con las mismas semillas, se obtienen
-exactamente los mismos resultados. La bitácora de decisiones está en [`decisiones.md`](decisiones.md)
+usa las semillas 0-99.
+Los baselines son idénticos en cualquier máquina. Los agentes DQN dan exactamente los mismos
+resultados en la misma máquina con las versiones de `uv.lock`; con otra versión de PyTorch o en otro
+hardware (CPU frente a GPU) los números de cada semilla pueden cambiar, aunque las conclusiones se
+mantienen, porque las operaciones de punto flotante no son idénticas entre plataformas.
+La bitácora de decisiones está en [`decisiones.md`](decisiones.md)
 y los experimentos quedan registrados en MLflow.
 
 ---
