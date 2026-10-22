@@ -2,6 +2,7 @@
 
 Contents:
   - DATA_PATH  : the dataset (a copy of gym-anytrading's STOCKS_GOOGL)
+  - ASSETS_DIR : extra train-only assets for the multi-asset env
   - SPLITS     : date ranges of the train / val / test periods
   - FEATURES   : names of the state features, in order
   - load()     : read the price CSV
@@ -24,6 +25,8 @@ import numpy as np
 import pandas as pd
 
 DATA_PATH = Path(__file__).resolve().parents[2] / "data" / "STOCKS_GOOGL.csv"
+# extra training assets (scripts/download_assets.py), dates up to 2015 only
+ASSETS_DIR = DATA_PATH.parent / "assets"
 
 SPLITS = {
     "train": ("2009-01-01", "2015-12-31"),

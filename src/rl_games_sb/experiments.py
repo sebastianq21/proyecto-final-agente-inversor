@@ -99,7 +99,7 @@ def _stamp() -> str:
 
 def train(cfg: config.Config) -> Path:
     """Train for cfg.timesteps, save, evaluate, and log it all to MLflow."""
-    path = registry.save_path(cfg.algo, cfg.env, cfg.hyperparams.get("seed"))
+    path = registry.save_path(cfg.algo, cfg.env, cfg.hyperparams.get("seed"), cfg.save_tag)
     resumed = path.exists()
     if resumed and cfg.hyperparams.keys() - {"device"}:
         print(
@@ -107,7 +107,7 @@ def train(cfg: config.Config) -> Path:
             f"so the config's are ignored. Run 'rlgames-sb delete {cfg.algo} "
             f"--env {cfg.env}' to start fresh."
         )
-    model = registry.load_or_create(cfg.algo, cfg.env, **cfg.hyperparams)
+    model = registry.load_or_create(cfg.algo, cfg.env, tag=cfg.save_tag, **cfg.hyperparams)
     print(f"Device: {registry.describe_device(model.device)}")
 
     mlflow.set_experiment(cfg.experiment)

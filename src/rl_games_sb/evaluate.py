@@ -3,8 +3,9 @@
 Contents:
   - run()        : one deterministic pass over a period -> a daily DataFrame
   - metrics()    : cumulative return, max drawdown, costs, trades, ...
-  - backtest()   : RL agents (per seed) + baselines over a split; writes CSVs
-                   and figures under results/<split>/
+  - ensemble()   : one policy from several: the median of their actions
+  - backtest()   : RL agents (per seed, optionally their ensemble) + baselines
+                   over a split; writes CSVs and figures under results/<split>/
   - plot_curves(): learning curves on train vs val, from results/curves/
 
 Every strategy runs in the same env (googl-<split>-v0): same days, same
@@ -12,6 +13,7 @@ Every strategy runs in the same env (googl-<split>-v0): same days, same
 """
 from __future__ import annotations
 
+from itertools import cycle
 from pathlib import Path
 
 import matplotlib
@@ -67,24 +69,40 @@ def metrics(day: pd.DataFrame) -> dict[str, float]:
 
 
 def _agent_policy(cfg: config.Config, seed: int) -> baselines.Policy:
-    model = registry.load(cfg.algo, cfg.env, device="cpu", seed=seed)
+    model = registry.load(cfg.algo, cfg.env, device="cpu", seed=seed, tag=cfg.save_tag)
     return lambda obs: model.predict(obs, deterministic=True)[0]
+
+
+def ensemble(policies: list[baselines.Policy]) -> baselines.Policy:
+    """Each day, the median of the seeds' actions. Actions are ordered
+    (0 %, 50 %, 100 % invested), so the median is the position the majority
+    is at least as cautious as, and it is always one of the actions."""
+    def policy(obs):
+        actions = sorted(int(p(obs)) for p in policies)
+        return actions[len(actions) // 2]
+    return policy
 
 
 def backtest(
     split: str, configs: list[str], seeds: int = 5, random_runs: int = 100,
+    with_ensemble: bool = False, out: Path | None = None,
 ) -> pd.DataFrame:
     """Per-run metrics for every agent seed and baseline, plus a mean row per
-    strategy. Writes results/<split>/metrics.csv, summary.csv and figures."""
+    strategy. Writes <out>/metrics.csv, summary.csv and figures; `out`
+    defaults to results/<split>/. with_ensemble adds a "<config>_ensemble"
+    strategy per config: one run of the median of its seeds."""
     env_id = f"googl-{split}-v0"
-    out = RESULTS / split
+    out = out or RESULTS / split
     out.mkdir(parents=True, exist_ok=True)
 
     runs: dict[str, list[pd.DataFrame]] = {}
     for path in configs:
         cfg = config.load(path)
         name = cfg.path.stem
-        runs[name] = [run(env_id, _agent_policy(cfg, s)) for s in range(seeds)]
+        policies = [_agent_policy(cfg, s) for s in range(seeds)]
+        runs[name] = [run(env_id, p) for p in policies]
+        if with_ensemble:
+            runs[f"{name}_ensemble"] = [run(env_id, ensemble(policies))]
     runs["buy_and_hold"] = [run(env_id, baselines.buy_and_hold())]
     runs["half"] = [run(env_id, baselines.half())]
     runs["random"] = [run(env_id, baselines.random_policy(s)) for s in range(random_runs)]
@@ -120,7 +138,17 @@ LABELS = {  # display names in the figures (Spanish, the report's language)
     "googl_dqn_sparse": "DQN R0", "googl_dqn_log": "DQN R1", "googl_dqn_dd": "DQN R2",
     "googl_dqn_turnover": "DQN R3", "googl_dqn_turnover_noise05": "DQN R3 + ruido 0,5",
     "googl_dqn_turnover_noise10": "DQN R3 + ruido 1,0",
+    "googl_dqn_turnover_noise05_2m": "DQN 2M", "googl_ddqn_turnover_noise05_2m": "DDQN 2M",
+    "googl_ddqn_dsr_noise05_2m": "DDQN 2M Sharpe dif.",
+    "multi_ddqn_turnover_noise05_2m": "DDQN 2M multiactivo",
 }
+
+
+def _label(name: str) -> str:
+    base = name.removesuffix("_ensemble")
+    return LABELS.get(base, base) + (" (ensamble)" if base != name else "")
+
+
 SPLIT_NAMES = {"train": "entrenamiento", "val": "validación", "test": "prueba"}
 
 
@@ -132,14 +160,14 @@ def _plot_equity(runs: dict[str, list[pd.DataFrame]], path: Path, split: str) ->
     """Mean portfolio value per strategy; agents also show each seed, faintly.
     End-of-line labels are nudged apart so they never overlap."""
     fig, ax = plt.subplots(figsize=(10, 5))
-    agent_colors = iter(AGENT_COLORS)
+    agent_colors = cycle(AGENT_COLORS)
     ends = []
     for name, days in runs.items():
         values = pd.concat([d["value"] for d in days], axis=1)
         color = COLORS.get(name) or next(agent_colors)
         if name not in COLORS:  # an RL agent: one faint line per seed
             ax.plot(values.index, values, color=color, linewidth=0.8, alpha=0.25)
-        label = LABELS.get(name, name)
+        label = _label(name)
         legend = f"{label} (media de {len(days)})" if len(days) > 1 else label
         mean = values.mean(axis=1)
         ax.plot(mean.index, mean, color=color, linewidth=2, label=legend)
@@ -172,7 +200,7 @@ def _plot_positions(days: list[pd.DataFrame], path: Path, name: str) -> None:
         ax.set_yticks(ACTIONS, [f"{a:.0%}" for a in ACTIONS])
         ax.set_ylabel(f"semilla {seed}", fontsize=8, color="#52514e")
     np.atleast_1d(axes)[0].set_title(
-        f"Fracción invertida: {LABELS.get(name, name)}", loc="left", fontsize=11
+        f"Fracción invertida: {_label(name)}", loc="left", fontsize=11
     )
     fig.tight_layout()
     fig.savefig(path, dpi=150)
